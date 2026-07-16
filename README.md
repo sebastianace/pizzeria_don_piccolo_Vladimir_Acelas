@@ -38,7 +38,7 @@ domicilios y pagos, además de automatizaciones con triggers y reportes con vist
 
 ## 3. Modelo de datos: tablas y relaciones
 
-El sistema tiene **11 tablas**. El siguiente diagrama entidad-relación muestra su
+El sistema tiene **10 tablas**. El siguiente diagrama entidad-relación muestra su
 estructura y las llaves foráneas que las conectan:
 
 ![Diagrama entidad-relación de la base de datos](imagenes/diagrama_er.png)
