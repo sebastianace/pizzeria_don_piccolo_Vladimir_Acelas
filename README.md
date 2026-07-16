@@ -84,9 +84,7 @@ estructura y las llaves foráneas que las conectan:
 
 ## 5. Consultas incluidas y evidencias
 
-Cada consulta está definida como una vista con nombre descriptivo (para que la
-pestaña de resultados en MySQL Workbench salga con nombre) y se ejecuta con
-`SELECT * FROM ...`. A continuación, la evidencia de cada una:
+A continuación las 7 consultas requeridas con su evidencia de ejecución:
 
 ### 5.1. Clientes con pedidos entre dos fechas — `BETWEEN`
 ![Consulta 1 - clientes por fecha](imagenes/consulta_1_clientes_por_fecha.png)
