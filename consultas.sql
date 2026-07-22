@@ -8,107 +8,41 @@
 -- =====================================================================
 USE pizzeria_don_piccolo;
 
+-- 3) CONSULTAS DE GESTIÓN (para el gerente)
 -- ---------------------------------------------------------------------
--- CONSULTA 1: Clientes con pedidos entre dos fechas  (BETWEEN)
---   Lista los clientes y sus pedidos realizados en un rango de fechas.
--- ---------------------------------------------------------------------
-SELECT c.id_cliente,
-       c.nombre,
-       p.id_pedido,
-       p.fecha_hora,
-       p.total
-  FROM clientes c
-  JOIN pedidos  p ON p.id_cliente = c.id_cliente
- WHERE p.fecha_hora BETWEEN '2026-07-05 00:00:00' AND '2026-07-08 23:59:59'
+
+-- 3.1) consulta de pedidos por cliente y por metodo de pago
+SELECT p.id_pedido, c.nombre AS cliente, p.fecha_hora,
+       p.metodo_pago, p.estado, p.total
+  FROM pedidos p
+  JOIN clientes c ON c.id_cliente = p.id_cliente
+ ORDER BY p.fecha_hora DESC;
+
+
+-- 3.3) Pedidos pendientes o en preparación (lo que el gerente atiende HOY)
+SELECT p.id_pedido, c.nombre AS cliente, p.fecha_hora, p.estado
+  FROM pedidos p
+  JOIN clientes c ON c.id_cliente = p.id_cliente
+ WHERE p.estado IN ('pendiente', 'en_preparacion')
  ORDER BY p.fecha_hora;
 
--- ---------------------------------------------------------------------
--- CONSULTA 2: Pizzas más vendidas  (GROUP BY + COUNT/SUM)
---   Cantidad total de unidades vendidas por pizza, de mayor a menor.
--- ---------------------------------------------------------------------
-SELECT pz.id_pizza,
-       pz.nombre,
-       COUNT(dp.id_detalle)   AS veces_pedida,
-       SUM(dp.cantidad)       AS unidades_vendidas
-  FROM pizzas pz
-  JOIN detalle_pedido dp ON dp.id_pizza = pz.id_pizza
+-- 3.4) Cantidad de pedidos y total vendido, agrupado por estado
+SELECT estado, COUNT(*) AS cantidad_pedidos, SUM(total) AS total_por_estado
+  FROM pedidos
+ GROUP BY estado;
+
+-- 3.5) Pizzas más pedidas (para saber qué preparar con anticipación)
+SELECT pz.nombre, SUM(dp.cantidad) AS unidades_pedidas
+  FROM detalle_pedido dp
+  JOIN pizzas pz ON pz.id_pizza = dp.id_pizza
  GROUP BY pz.id_pizza, pz.nombre
- ORDER BY unidades_vendidas DESC;
+ ORDER BY unidades_pedidas DESC;
 
--- ---------------------------------------------------------------------
--- CONSULTA 3: Pedidos por repartidor  (JOIN)
---   Número de pedidos gestionados por cada repartidor.
--- ---------------------------------------------------------------------
-SELECT r.id_repartidor,
-       r.nombre,
-       r.zona,
-       COUNT(p.id_pedido) AS total_pedidos
-  FROM repartidores r
-  LEFT JOIN pedidos p ON p.id_repartidor = r.id_repartidor
- GROUP BY r.id_repartidor, r.nombre, r.zona
- ORDER BY total_pedidos DESC;
-
--- ---------------------------------------------------------------------
--- CONSULTA 4: Promedio de tiempo de entrega por zona  (AVG + JOIN)
---   Minutos promedio entre la salida y la entrega, agrupado por zona.
--- ---------------------------------------------------------------------
-SELECT r.zona,
-       COUNT(d.id_domicilio) AS entregas,
-       ROUND(AVG(TIMESTAMPDIFF(MINUTE, d.hora_salida, d.hora_entrega)), 1)
-           AS minutos_promedio
-  FROM domicilios  d
-  JOIN pedidos     p ON p.id_pedido     = d.id_pedido
-  JOIN repartidores r ON r.id_repartidor = p.id_repartidor
- WHERE d.hora_salida IS NOT NULL
-   AND d.hora_entrega IS NOT NULL
- GROUP BY r.zona
- ORDER BY minutos_promedio;
-
--- ---------------------------------------------------------------------
--- CONSULTA 5: Clientes que gastaron más de un monto  (HAVING)
---   Total gastado por cliente, filtrando solo los que superan $80.000.
--- ---------------------------------------------------------------------
-SELECT c.id_cliente,
-       c.nombre,
-       SUM(p.total) AS total_gastado
+-- 3.6) Clientes mas frecuentes (HAVING) — útil para fidelización
+SELECT c.nombre, COUNT(p.id_pedido) AS pedidos, SUM(p.total) AS total_gastado
   FROM clientes c
-  JOIN pedidos  p ON p.id_cliente = c.id_cliente
+  JOIN pedidos p ON p.id_cliente = c.id_cliente
  WHERE p.estado <> 'cancelado'
  GROUP BY c.id_cliente, c.nombre
-HAVING SUM(p.total) > 80000
+HAVING SUM(p.total) > 50000
  ORDER BY total_gastado DESC;
-
--- ---------------------------------------------------------------------
--- CONSULTA 6: Búsqueda parcial por nombre de pizza  (LIKE)
---   Busca pizzas cuyo nombre contenga el texto 'pe' (ej. Pepperoni).
--- ---------------------------------------------------------------------
-SELECT id_pizza,
-       nombre,
-       tamano,
-       precio_base,
-       tipo
-  FROM pizzas
- WHERE nombre LIKE '%pe%';
-
--- ---------------------------------------------------------------------
--- CONSULTA 7: Clientes frecuentes  (SUBCONSULTA)
---   Clientes con más de 5 pedidos dentro del mes actual.
---   La subconsulta cuenta los pedidos del mes por cliente.
--- ---------------------------------------------------------------------
-SELECT c.id_cliente,
-       c.nombre,
-       c.telefono
-  FROM clientes c
- WHERE c.id_cliente IN (
-        SELECT p.id_cliente
-          FROM pedidos p
-         WHERE MONTH(p.fecha_hora) = MONTH(CURRENT_DATE)
-           AND YEAR(p.fecha_hora)  = YEAR(CURRENT_DATE)
-         GROUP BY p.id_cliente
-        HAVING COUNT(p.id_pedido) > 5
- );
-
-
--- =====================================================================
---  FIN consultas.sql
--- =====================================================================

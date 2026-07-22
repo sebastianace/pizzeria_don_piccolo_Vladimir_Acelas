@@ -65,8 +65,13 @@ DELIMITER ;
 -- CORRECCIÓN Error 1175: el WHERE por clave primaria evita el safe update mode.
 UPDATE pedidos SET total = fn_total_pedido(id_pedido) WHERE id_pedido > 0;
 
--- EJEMPLOS:
--- SELECT fn_total_pedido(1);
--- SELECT fn_ganancia_neta_diaria('2026-07-05');
--- CALL sp_registrar_entrega(5, '2026-07-08 13:10:00');
+-- FUNCION ADICIONAL DEL EXAMEN: 
+-- Total de cada pedido = suma de (precio_unitario * cantidad)
+UPDATE pedidos p
+   SET p.total = (
+        SELECT COALESCE(SUM(dp.precio_unitario * dp.cantidad), 0)
+          FROM detalle_pedido dp
+         WHERE dp.id_pedido = p.id_pedido
+   )
+ WHERE p.id_pedido > 0;
 -- ============================ FIN funciones.sql ====================
